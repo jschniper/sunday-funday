@@ -84,6 +84,33 @@ router.post('/', async function(req, res, _next) {
   }
 });
 
+router.put('/:id', async function(req, res, _next) {
+  if ('title' in req.body && ('contents' in req.body || 'text' in req.body) && 'categoryId' in req.body) {
+    let body = [
+      req.body.title,
+      (req.body.contents || req.body.text),
+      req.body.categoryId,
+      req.params.id
+    ]
+
+    // TODO: Fix returning results without a second query
+    await db.query('UPDATE posts SET title = ?, contents = ?, categoryId = ? WHERE id = ? RETURNING *', {
+      replacements: body,
+      type: QueryTypes.UPDATE,
+    })
+
+    const [results] = await db.query('SELECT * FROM posts WHERE ID = ?', {
+      replacements: [req.params.id],
+      type: QueryTypes.SELECT,
+    });
+
+    res.json(results);
+  }
+  else {
+    res.status(400).json({error: 'Missing requireds fields: make sure to include title, contents and categoryId'});
+  }
+});
+
 // NOTE: Duplicated function to handle mismatch between documentation and Postman project
 router.put('/', async function(req, res, _next) {
   if ('id' in req.body && 'title' in req.body && ('contents' in req.body || 'text' in req.body) && 'categoryId' in req.body) {
@@ -109,32 +136,6 @@ router.put('/', async function(req, res, _next) {
   }
   else {
     res.status(400).json({error: 'Missing requireds fields: make sure to include id, title, contents and categoryId'});
-  }
-});
-
-router.put('/:id', async function(req, res, _next) {
-  if ('title' in req.body && ('contents' in req.body || 'text' in req.body) && 'categoryId' in req.body) {
-    let body = [
-      req.body.title,
-      (req.body.contents || req.body.text),
-      req.body.categoryId
-    ]
-
-    // TODO: Fix returning results without a second query
-    await db.query('UPDATE posts SET title = ?, contents = ?, categoryId = ? WHERE id = ? RETURNING *', {
-      replacements: body,
-      type: QueryTypes.UPDATE,
-    })
-
-    const [results] = await db.query('SELECT * FROM posts WHERE ID = ?', {
-      replacements: [req.params.id],
-      type: QueryTypes.SELECT,
-    });
-
-    res.json(results);
-  }
-  else {
-    res.status(400).json({error: 'Missing requireds fields: make sure to include title, contents and categoryId'});
   }
 });
 
